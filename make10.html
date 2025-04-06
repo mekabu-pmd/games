@@ -124,7 +124,7 @@
                 <div id="actions">
                     <button class="action-button" onclick="retry()">リトライ</button>
                     <button class="action-button" onclick="newProblem()">新しい問題に挑戦</button>
-                    <button class="action-button" onclick="showSolution()">正解はない</button>
+                    <button class="action-button" onclick="showSolution()">10にできません</button>
                 </div>
             </td>
         </tr>
@@ -138,18 +138,18 @@
         let usedNumbers = 0;
         let currentNumbers = [];
 
-        function generateNumbers() {
+        function generateNumbers(fixedNumbers = null) {
             numbersContainer.innerHTML = '';
             currentNumbers = [];
-            for (let i = 0; i < 4; i++) { // 4つの数字を生成
-                const number = Math.floor(Math.random() * 9) + 1;
+            const numbers = fixedNumbers || Array.from({ length: 4 }, () => Math.floor(Math.random() * 9) + 1); // 固定値が指定されていない場合はランダム生成
+            numbers.forEach(number => {
                 currentNumbers.push(number);
                 const numberElement = document.createElement('div');
                 numberElement.textContent = number;
                 numberElement.className = 'number';
                 numberElement.onclick = () => selectNumber(number, numberElement);
                 numbersContainer.appendChild(numberElement);
-            }
+            });
         }
 
         function selectNumber(number, element) {
@@ -219,7 +219,7 @@
 
         function newProblem() {
             resetGame();
-            generateNumbers();
+            generateNumbers(); // ランダムな問題を生成
         }
 
         function clearErrorMessage() {
@@ -228,26 +228,29 @@
             }
         }
 
-        function showSolution() {
-            const solution = findSolution(currentNumbers);
-            if (solution) {
-                resultContainer.textContent = `模範解答: ${solution.replace(/\//g, '➗').replace(/\*/g, '✖️')}`;
-            } else {
-                resultContainer.textContent = '正解です!';
-            }
-        }
-
         function findSolution(numbers) {
             const operators = ['+', '-', '*', '/'];
 
+            // 循環小数を判定する関数
+            function isRepeatingDecimal(numerator, denominator) {
+                while (denominator % 2 === 0) denominator /= 2; // 2で割り切れる限り割る
+                while (denominator % 5 === 0) denominator /= 5; // 5で割り切れる限り割る
+                return denominator !== 1; // 割り切れない場合は循環小数
+            }
+
             // 再帰的にすべての組み合わせを試す
             function calculate(expression, remainingNumbers) {
+                console.log(`試算中の式: ${expression}, 残りの数字: ${remainingNumbers}`);
                 if (remainingNumbers.length === 0) {
                     try {
-                        if (eval(expression) === 10) {
+                        const result = eval(expression);
+                        console.log(`計算結果: ${result}`);
+                        if (result === 10) {
+                            console.log(`正解の式が見つかりました: ${expression}`);
                             return expression;
                         }
-                    } catch {
+                    } catch (error) {
+                        console.log(`エラーが発生しました: ${error.message}`);
                         return null;
                     }
                 } else {
@@ -255,6 +258,13 @@
                         const nextNumber = remainingNumbers[i];
                         const nextRemaining = remainingNumbers.slice(0, i).concat(remainingNumbers.slice(i + 1));
                         for (const op of operators) {
+                            if (op === '/') {
+                                // 割り算の場合、循環小数をチェック
+                                if (nextNumber === 0 || isRepeatingDecimal(eval(expression), nextNumber)) {
+                                    console.log(`循環小数またはゼロ除算をスキップ: ${expression} ${op} ${nextNumber}`);
+                                    continue;
+                                }
+                            }
                             const result = calculate(`${expression} ${op} ${nextNumber}`, nextRemaining);
                             if (result) {
                                 return result;
@@ -278,7 +288,19 @@
             return null; // 解が見つからない場合
         }
 
-        generateNumbers();
+        function showSolution() {
+            const solution = findSolution(currentNumbers);
+            if (solution) {
+                resultContainer.textContent = `模範解答: ${solution.replace(/\//g, '➗').replace(/\*/g, '✖️')}`;
+            } else {
+                resultContainer.textContent = '模範解答: 解なし';
+            }
+        }
+
+        generateNumbers(); // こちらをコメントアウトして、下の行を有効にすると、ページ読み込み時に固定値を使用できます
+        // ページ読み込み時にランダムな数字を生成
+        // テスト用に固定値を設定する場合
+        //generateNumbers([2, 6, 9, 6]); // ここで固定値を指定
     </script>
 </body>
 </html>
