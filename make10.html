@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メイク10ゲーム</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f8ff; /* 全体の背景色を明るい青に */
+        }
+        table {
+            width: 100%;
+            height: 100vh;
+            border-collapse: collapse;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+            padding: 20px;
+            background-color: #ffcc00; /* ヘッダー部分を明るい黄色に */
+            color: #333; /* テキストを濃いグレーに */
+            font-weight: bold;
+        }
+        p {
+            margin: 0;
+            padding: 10px;
+            background-color: #ffeb99; /* 説明部分を柔らかい黄色に */
+            color: #333; /* テキストを濃いグレーに */
+        }
+        #numbers {
+            padding: 20px;
+            background-color: #d1f7c4; /* 数字部分を柔らかい緑に */
+        }
+        #operators {
+            padding: 20px;
+            background-color: #ffcccc; /* 演算子部分を柔らかい赤に */
+        }
+        #resultContainer {
+            padding: 20px;
+            background-color: #cce5ff; /* 結果表示部分を柔らかい青に */
+            color: #333; /* テキストを濃いグレーに */
+            font-weight: bold;
+            font-size: 2rem; /* フォントサイズを数字と同じに */
+            font-family: Arial, sans-serif; /* フォントを数字と同じに */
+        }
+        #actions {
+            padding: 20px;
+            background-color: #e6e6e6; /* ボタン部分を柔らかいグレーに */
+        }
+        .number {
+            font-size: 2rem;
+            margin: 10px;
+            cursor: pointer;
+            display: inline-block;
+            padding: 10px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            background-color: #ffffff; /* 数字ボタンを白に */
+            color: #333; /* テキストを濃いグレーに */
+            font-weight: bold;
+        }
+        .operator {
+            font-size: 2rem;
+            margin: 10px;
+            cursor: pointer;
+            display: inline-block;
+            padding: 10px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            background-color: #ffffff; /* 演算子ボタンを白に */
+            color: #333; /* テキストを濃いグレーに */
+            font-weight: bold;
+        }
+        .action-button {
+            font-size: 1rem;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border: 2px solid #333;
+            border-radius: 10px;
+            background-color: #ffffff; /* ボタンを白に */
+            color: #333; /* テキストを濃いグレーに */
+            font-weight: bold;
+        }
+        .action-button:hover {
+            background-color: #ffcc00; /* ボタンをホバー時に黄色に */
+            color: #000; /* テキストを黒に */
+        }
+    </style>
+</head>
+<body>
+    <table style="width: 100%; height: 100%; border-collapse: collapse; text-align: center;">
+        <tr>
+            <td colspan="3">
+                <h1>メイク10ゲーム</h1>
+                <p>4つの数字をすべて使って合計が10になるようにしてください！</p>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <div id="numbers"></div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <div id="operators">
+                    <div class="operator" onclick="selectOperator('+')">+</div>
+                    <div class="operator" onclick="selectOperator('-')">-</div>
+                    <div class="operator" onclick="selectOperator('*')">×</div>
+                    <div class="operator" onclick="selectOperator('/')">÷</div>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <div id="resultContainer" onclick="clearErrorMessage()"></div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <div id="actions">
+                    <button class="action-button" onclick="retry()">リトライ</button>
+                    <button class="action-button" onclick="newProblem()">新しい問題に挑戦</button>
+                    <button class="action-button" onclick="showSolution()">正解はない</button>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <script>
+        const numbersContainer = document.getElementById('numbers');
+        const resultContainer = document.getElementById('resultContainer');
+        const actionsContainer = document.getElementById('actions');
+        let selectedExpression = '';
+        let usedNumbers = 0;
+        let currentNumbers = [];
+
+        function generateNumbers() {
+            numbersContainer.innerHTML = '';
+            currentNumbers = [];
+            for (let i = 0; i < 4; i++) { // 4つの数字を生成
+                const number = Math.floor(Math.random() * 9) + 1;
+                currentNumbers.push(number);
+                const numberElement = document.createElement('div');
+                numberElement.textContent = number;
+                numberElement.className = 'number';
+                numberElement.onclick = () => selectNumber(number, numberElement);
+                numbersContainer.appendChild(numberElement);
+            }
+        }
+
+        function selectNumber(number, element) {
+            if (selectedExpression.endsWith('=') || selectedExpression === '不正解') return;
+            if (element.classList.contains('used')) return; // すでに使用済みの数字は選択不可
+            if (selectedExpression.length > 0 && !isNaN(selectedExpression.slice(-1))) {
+                // 直前が数字の場合は入力を無効化
+                resultContainer.textContent = '数字が連続しています。演算子を入力してください。';
+                return;
+            }
+            selectedExpression += number;
+            element.classList.add('used'); // 数字を使用済みにする
+            usedNumbers++;
+            if (usedNumbers === 4) {
+                checkAnswer(); // 4つ目の数字を入力した時点で判定
+            } else {
+                updateResult();
+            }
+        }
+
+        function selectOperator(operator) {
+            if (selectedExpression.endsWith('=') || selectedExpression === '不正解') return;
+            if (['+', '-', '*', '/'].some(op => selectedExpression.endsWith(op))) {
+                // 直前が演算子の場合は入力を無効化
+                resultContainer.textContent = '演算子が連続しています。数字を入力してください。';
+                return;
+            }
+            selectedExpression += operator;
+            updateResult();
+        }
+
+        function updateResult() {
+            resultContainer.textContent = selectedExpression;
+        }
+
+        function checkAnswer() {
+            try {
+                const evalResult = eval(selectedExpression);
+                if (evalResult === 10) {
+                    selectedExpression += '=正解！';
+                } else {
+                    selectedExpression = '不正解';
+                }
+            } catch {
+                selectedExpression = '不正解';
+            }
+            resultContainer.textContent = selectedExpression;
+        }
+
+        function resetGame() {
+            selectedExpression = '';
+            usedNumbers = 0;
+            resultContainer.textContent = '';
+        }
+
+        function retry() {
+            resetGame();
+            numbersContainer.innerHTML = ''; // 数字の表示をクリア
+            currentNumbers.forEach(number => {
+                const numberElement = document.createElement('div');
+                numberElement.textContent = number;
+                numberElement.className = 'number';
+                numberElement.onclick = () => selectNumber(number, numberElement);
+                numbersContainer.appendChild(numberElement);
+            });
+        }
+
+        function newProblem() {
+            resetGame();
+            generateNumbers();
+        }
+
+        function clearErrorMessage() {
+            if (resultContainer.textContent.includes('連続しています')) {
+                resultContainer.textContent = selectedExpression; // 数式を再表示
+            }
+        }
+
+        function showSolution() {
+            const solution = findSolution(currentNumbers);
+            if (solution) {
+                resultContainer.textContent = `模範解答: ${solution.replace(/\//g, '➗').replace(/\*/g, '✖️')}`;
+            } else {
+                resultContainer.textContent = '正解です!';
+            }
+        }
+
+        function findSolution(numbers) {
+            const operators = ['+', '-', '*', '/'];
+
+            // 再帰的にすべての組み合わせを試す
+            function calculate(expression, remainingNumbers) {
+                if (remainingNumbers.length === 0) {
+                    try {
+                        if (eval(expression) === 10) {
+                            return expression;
+                        }
+                    } catch {
+                        return null;
+                    }
+                } else {
+                    for (let i = 0; i < remainingNumbers.length; i++) {
+                        const nextNumber = remainingNumbers[i];
+                        const nextRemaining = remainingNumbers.slice(0, i).concat(remainingNumbers.slice(i + 1));
+                        for (const op of operators) {
+                            const result = calculate(`${expression} ${op} ${nextNumber}`, nextRemaining);
+                            if (result) {
+                                return result;
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+
+            // すべての数字の順列を試す
+            for (let i = 0; i < numbers.length; i++) {
+                const firstNumber = numbers[i];
+                const remainingNumbers = numbers.slice(0, i).concat(numbers.slice(i + 1));
+                const result = calculate(`${firstNumber}`, remainingNumbers);
+                if (result) {
+                    return result;
+                }
+            }
+
+            return null; // 解が見つからない場合
+        }
+
+        generateNumbers();
+    </script>
+</body>
+</html>
