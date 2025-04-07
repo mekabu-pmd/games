@@ -171,6 +171,11 @@
         }
 
         function selectOperator(operator) {
+            if (selectedExpression === '') {
+                // 最初に演算子が入力された場合
+                resultContainer.textContent = '最初に演算子を入力することはできません。';
+                return;
+            }
             if (selectedExpression.endsWith('=') || selectedExpression === '不正解') return;
             if (['+', '-', '*', '/'].some(op => selectedExpression.endsWith(op))) {
                 // 直前が演算子の場合は入力を無効化
@@ -293,7 +298,7 @@
             if (solution) {
                 resultContainer.textContent = `模範解答: ${solution.replace(/\//g, '➗').replace(/\*/g, '✖️')}`;
             } else {
-                resultContainer.textContent = '模範解答: 解なし';
+                resultContainer.textContent = '模範解答: 解なし(正解)';
             }
         }
 
